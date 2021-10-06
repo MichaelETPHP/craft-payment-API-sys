@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="craft-payment-login-sys-apiSub_Flow" doc:id="9d6b4dde-ba53-400c-aa43-02368ef56a10" >
+		<db:select doc:name="Select User Info" doc:id="be0c26a1-f587-4480-bef0-7676fe718507" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[SELECT password, card_no, registration_date, status, email, user_info.id AS UserInfoID, payment_info.amount AS reamount FROM  user_info JOIN payment_info ON user_info.id=payment_info.user_id where email=:uname And password=:upassword]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+   uname: payload.username,
+   upassword: payload.password
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="69ea5748-168e-48d6-8b27-ea368910693f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+if (payload.email != null and payload.password != null) 
+    payload[0]
+    
+else {message: "Account Not Found"}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>

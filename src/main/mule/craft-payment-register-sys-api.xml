@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<sub-flow name="craft-payment-register-sys-apiSub_Flow" doc:id="3e3bfc95-18b1-4799-a81a-fb61858bdaaa" >
+		<ee:transform doc:name="Transform Message" doc:id="36460b12-1e9e-456d-a484-d00910817d98" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+        <ee:set-variable variableName="email" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.email]]></ee:set-variable>
+        <ee:set-variable variableName="card_no" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.card_no]]></ee:set-variable>
+				<ee:set-variable variableName="amount" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.amount]]></ee:set-variable>
+				<ee:set-variable variableName="password" ><![CDATA[%dw 2.0
+output application/java
+---
+
+payload.password]]></ee:set-variable>
+      
+</ee:variables>
+		</ee:transform>
+		<db:select doc:name="Select user data" doc:id="882c86d5-60c3-4808-8a89-880c70160668" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[select * from user_info where email= :a]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+   a: vars.email
+}]]]></db:input-parameters>
+		</db:select>
+	</sub-flow>
+</mule>

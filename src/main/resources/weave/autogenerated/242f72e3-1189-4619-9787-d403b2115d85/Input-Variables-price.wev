@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_242f72e3_1189_4619_9787_d403b2115d85_Input_Variables_price = Any
+

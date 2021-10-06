@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_404baf8d_0e4b_4f46_afea_a313725a1c50_Output_Variables_price = Any
+

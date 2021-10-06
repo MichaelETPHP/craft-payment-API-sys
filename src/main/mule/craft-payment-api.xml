@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+    <http:listener-config name="craft-payment-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="craft-payment-api-config" api="resource::9477039a-4e16-4990-85c8-6e199556a351:craft-payment-api:2.0.0:raml:zip:craft-payment-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="craft-payment-api-main">
+        <http:listener config-ref="HTTP_Listener_Register_port1" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="craft-payment-api-config" />
+        <error-handler ref="global-error-handlerError_Handler">
+
+        </error-handler>
+    </flow>
+    <flow name="craft-payment-api-console">
+        <http:listener config-ref="HTTP_Listener_Register_port1" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="craft-payment-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\login:application\json:craft-payment-api-config">
+		<flow-ref doc:name="Flow Reference" doc:id="b6609f74-83a8-4de7-8b48-cb998a769ff0" name="craft-payment-login-sys-apiSub_Flow"/>
+    </flow>
+    <flow name="post:\pay:application\json:craft-payment-api-config">
+		<flow-ref doc:name="Flow Reference" doc:id="b0f4bff7-c2e6-4079-a309-2d8cdb3649f3" name="craft-payment-pay-sys-apiSub_FlowSelectPaymentInfo"/>
+		<ee:transform doc:name="Transform Message" doc:id="6771cda4-bdea-499b-9e4b-828d528cdbf0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var dataVal = payload map{
+  amount: $.amount,
+  uId: $.user_id
+  
+  
+}
+---
+{
+  (dataVal)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="e69bdc59-d168-40bb-aebc-a92d871ca322" >
+			<when expression="#[payload.amount &gt; vars.price]">
+				<flow-ref doc:name="Flow Reference" doc:id="2acce8b3-1910-4184-8427-d2650fbb63cd" name="craft-payment-pay-sys-apiSub_FlowSelect"/>
+				<choice doc:name="Choice" doc:id="f94a2557-41e9-4b81-8b8b-938e5ce879e3" >
+					<when expression="#[(sizeOf(payload))&gt;3]">
+						<flow-ref doc:name="Flow Reference" doc:id="f17584e6-7be0-4eda-bf13-7677cf207a38" name="craft-payment-pay-proc-apiSub_FlowQuery"/>
+						<ee:transform doc:name="Transform Message" doc:id="0c7eab5e-fb8e-42a5-854a-7ecd3e0840ed">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "you paid successfully"
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="1716b47d-fbcf-446a-bdbb-dee332ddd9fc" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"msg": "you paid successfully"
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="371f50ed-62d1-4fb0-b8f7-bb5ad7ea9180" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "your balance is insufficient"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+    </flow>
+    <flow name="post:\register:application\json:craft-payment-api-config">
+		<flow-ref doc:name="Flow Reference" doc:id="6f9853ce-4c92-4710-8ae9-42efa11f7fb2" name="craft-payment-register-sys-apiSub_Flow"/>
+		<choice doc:name="Choice" doc:id="ec30dc5e-2731-4a3a-8209-e2bf9e0c3453" >
+			<when expression="#[(sizeOf(payload))==0]">
+				<flow-ref doc:name="Flow Reference" doc:id="21e31e07-c825-4b33-ae1b-508287d616ca" name="craft-payment-register-proc-apiSub_Flow"/>
+				<ee:transform doc:name="Transform Message" doc:id="a2c6f4f5-9834-4b84-919b-e9201466cd84">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Msg": "Yes !! You Register Successfully!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="863a6d10-c0bb-4eab-98af-c5aa5cdde9f1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Msg": "Email Already Exists!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+          
+  
+    </flow>
+</mule>

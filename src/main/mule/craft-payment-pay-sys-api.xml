@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<sub-flow name="craft-payment-pay-sys-apiSub_FlowSelectPaymentInfo" doc:id="404baf8d-0e4b-4f46-afea-a313725a1c50" >
+		<ee:transform doc:name="Transform Message" doc:id="dfe6cbbf-7a01-495a-8356-c546b1d47751" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+        <ee:set-variable variableName="pname" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.pname
+]]></ee:set-variable>
+        <ee:set-variable variableName="price" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.price as Number]]></ee:set-variable>
+        <ee:set-variable variableName="user_id" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.uid as Number]]></ee:set-variable>
+      </ee:variables>
+		</ee:transform>
+		<db:select doc:name="Select From Payment Info" doc:id="067ef6ed-7991-40ae-a704-0bf91ec2298c" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[select * from payment_info where user_id= :userId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+  userId: vars.user_id as Number
+}]]]></db:input-parameters>
+		</db:select>
+	</sub-flow>
+	<sub-flow name="craft-payment-pay-sys-apiSub_FlowSelect" doc:id="063c1904-993d-4d42-9df2-aed6c63fad35" >
+		<db:insert doc:name="Insert in to User log data" doc:id="c6130226-46f3-4f31-b59a-4d3bff10958e" config-ref="Database_Config_All_in_One" target="sqs1">
+			<db:sql ><![CDATA[insert into log_data(user_id,product_id,remaining_amount,paid_amount) values (:uid,:pname,:ramount,:pamount)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+  uid: payload.uId,
+  pname: vars.pname,
+  ramount: payload.amount - vars.price,
+  pamount: vars.price
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="9d2dcfa8-4637-42cb-a8ef-d31d6752eb97" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:update doc:name="Update payment informations" doc:id="45b0939a-46a7-4e36-9e60-97b5c10deb9e" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[update payment_info set amount= :a where user_id = :userId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+  a: payload.amount - vars.price,
+  userId: vars.user_id
+}]]]></db:input-parameters>
+		</db:update>
+		<db:select doc:name="Select user Data" doc:id="580f2d45-f084-4147-b9ad-6e6f4ea8693a" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[SELECT * FROM user_info where id=:uid]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	uid:vars.user_id
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="3646abb9-86ef-4b96-8988-65e8bfe234b5" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="GData" ><![CDATA[%dw 2.0
+output application/java
+---
+payload map(value1, index)->
+{
+	Email__c:value1.email,
+    CardNumber__c: value1.card_no
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<salesforce:create doc:name="Create Buyer Object" doc:id="c8bd823c-b30b-4d54-8c44-c5ca2ddbe963" config-ref="Salesforce_Config" type="Buyer__c">
+			<salesforce:records ><![CDATA[#[vars.GData]]]></salesforce:records>
+		</salesforce:create>
+		<db:select doc:name="Select user id from user data" doc:id="6c50b141-e085-4045-9e0f-e39e1969a860" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[SELECT user_id FROM log_data where user_id=:uid]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	uid:vars.user_id
+}]]]></db:input-parameters>
+		</db:select>
+	</sub-flow>
+</mule>

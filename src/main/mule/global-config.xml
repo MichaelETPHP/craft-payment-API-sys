@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	
+	 
+  
+  
+    <db:config name="Database_Config_All_in_One" doc:name="Database Config" doc:id="b04bce85-41b3-457a-aec1-2b1bdac4c03d" >
+    <db:my-sql-connection host="${secure::db.host}" port="${secure::db.port}" user="${secure::db.username}" password="${secure::db.password}" database="${secure::db.database}"/>
+  </db:config>
+  
+  
+    <email:smtp-config name="Email_SMTP_For_Reg" doc:name="Email SMTP" doc:id="264b195b-951a-4417-afe6-a8ddfa82c864" >
+    <email:smtp-connection host="smtp.gmail.com" user="craft.suport01@gmail.com" password="Support#1" timeoutUnit="MINUTES">
+      <email:properties >
+        <email:property key="mail.smtp.starttls.enable" value="true" />
+      </email:properties>
+    </email:smtp-connection>
+  </email:smtp-config>
+  
+  
+  <configuration-properties doc:name="Configuration properties" doc:id="8157f60d-6a51-483d-80d3-45c760f0aafe" file="dev.yaml" doc:description="Config File"/>
+	
+	 <http:listener-config name="HTTP_Listener_Register_port1" doc:name="HTTP Listener config" doc:id="a4d6663e-af4c-4bdc-83c5-e4cd0753722e" doc:description="Register User to our System">
+    <http:listener-connection host="0.0.0.0" port="${secure::http.port}" />
+  </http:listener-config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="794f6ca1-ab45-40d2-98f0-e7bfdd6f79b1" file="dev.yaml" key="MI03112009044625000000000000008024754008">
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="42bc538a-ef25-4f08-9f37-117c92639d6b" >
+		<salesforce:basic-connection username="payment@craft.com" password="salesforce123" securityToken="rAKFDHzBQh1fWnhnkLMAjtQl"/>
+	</salesforce:sfdc-config>
+	<configuration doc:name="Configuration" doc:id="5fe1ace6-8608-47d0-93a1-0ad98c48a509" defaultErrorHandler-ref="global-error-handlerError_Handler" />
+	
+	
+
+</mule>

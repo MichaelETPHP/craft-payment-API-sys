@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="craft-payment-pay-proc-apiSub_FlowQuery" doc:id="242f72e3-1189-4619-9787-d403b2115d85" >
+		<salesforce:query doc:name="Select from  CraftLeads Object" doc:id="9e943411-33d8-46e3-98c4-bf12faa8e4f5" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[SELECT CardNumber__c,CreatedById,CreatedDate,Email__c,Id,IsDeleted,LastModifiedById,LastModifiedDate,LastReferencedDate,LastViewedDate,Name,OwnerId,SystemModstamp FROM CraftLead__c where Email__c=':email'
+
+]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[{
+	  email: vars.GData[0].Email__c
+	}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="40901383-503e-4dd2-8069-5123c1b5d490" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload map  {
+	Id: $.Id,
+	Name: $.Name,
+	Email__c: $.Email__c,
+	CardNumber__c: $.CardNumber__c
+}
+
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="d54cc611-2034-4181-8663-1c8fdc431803" >
+			<when expression="#[(sizeOf(payload))==0]">
+				<salesforce:create doc:name="Create a Lead" doc:id="b372ab91-1fef-4b05-bf2c-a1edeb068692" config-ref="Salesforce_Config" type="CraftLead__c">
+					<salesforce:records ><![CDATA[#[vars.GData]]]></salesforce:records>
+				</salesforce:create>
+			</when>
+		</choice>
+	</sub-flow>
+</mule>

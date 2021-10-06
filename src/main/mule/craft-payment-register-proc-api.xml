@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<sub-flow name="craft-payment-register-proc-apiSub_Flow" doc:id="321c5627-365a-4a17-b577-e37079d90bf4" >
+		<db:insert doc:name="Insert user data" doc:id="808355a3-dad4-4ea8-916e-ccd1bab1d0dc" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[insert into user_info(email, card_no,password) values(:email, :card_no, :password)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+  email: vars.email,
+  card_no:vars.card_no,
+  password: vars.password
+  
+}]]]></db:input-parameters>
+		</db:insert>
+		<db:select doc:name="Select user data" doc:id="5748c21d-15e7-4dd1-ad52-c5cf49a29381" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[select * from user_info where email= :a]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+   a: vars.email
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="2ab4ebb5-715e-4beb-91bf-97a0ca18e4dc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="id" ><![CDATA[%dw 2.0
+output application/java
+---
+payload[0].id]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<db:insert doc:name="Insert payment information" doc:id="d5b83703-36c8-4d47-a779-6cb5ab7578b8" config-ref="Database_Config_All_in_One">
+			<db:sql ><![CDATA[insert into payment_info(amount,user_id) values (:amount,:user_id)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+  amount:vars.amount,
+  user_id: vars.id
+  
+}]]]></db:input-parameters>
+		</db:insert>
+		<email:send doc:name="Send email to user " doc:id="a3bfbd9f-c329-4945-9cb6-8f3e1a91732c" config-ref="Email_SMTP_For_Reg" fromAddress="craft.suport01@gmail.com" subject='#["Mail From Craft Payment System"]'>
+			<email:to-addresses >
+				<email:to-address value="#[vars.email]" />
+			</email:to-addresses>
+			<email:body contentType="text/plain" >
+				<email:content ><![CDATA[#['User Card Number:- ' ++ vars.card_no]]]></email:content>
+			</email:body>
+		</email:send>
+	</sub-flow>
+</mule>
